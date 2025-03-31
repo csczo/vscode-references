@@ -43,16 +43,25 @@ function checkCtagsInstallation() {
 }
 
 function checkGtagsFile() {
-    const cwd = vscode.workspace.workspaceFolders?.[0].uri.path;
-    if (!cwd) return;
+    const workspacePath = vscode.workspace.workspaceFolders?.[0].uri.path;    
+    if (!workspacePath) return;
 
-    fs.stat(path.join(cwd, 'GTAGS'), (err, stat) => {
+    // Normalizing bad prefix "/c:/" declared to `workspacePath`
+    //  to prevent "C:\\c:\\Users\\etc" at fs.stat call on Windows - csczo
+
+    let gtagsPath;
+    if (process.platform === 'win32')
+        gtagsPath = workspacePath.slice(1, workspacePath.length);
+    else
+        gtagsPath = workspacePath;
+
+    fs.stat(path.join(gtagsPath, 'GTAGS'), (err, stat) => {
         if (err?.code === 'ENOENT') {
             showNotification(
                 'GTAGS is not generated, use "gtags" to generate tag files for global.',
             );
         } else if (err) {
-            p.exec(`${global()} -u`, { cwd });
+            p.exec(`${global()} -u`, { cwd: workspacePath });
         }
     });
 }
